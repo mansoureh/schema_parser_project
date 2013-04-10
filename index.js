@@ -250,36 +250,15 @@ Validator.prototype.checkIsValidProperty = function(type, property, cb) {
 
 }
 
-Validator.prototype.getExpectedTypes = function(property, cb) {
-    // what's the expectedType of this property?
-    // returns an array of the superclasses of the expectedType
 
-    var schemaProperty = 'schema:' + property,
-        query = 'PREFIX schema: <http://schema.org/> SELECT ?type {' + schemaProperty + ' rdfs:range ?type}',
-        results = [],
-        err;
-
-    this.conn.setReasoning('NONE');
-
-    this.conn.query(this.database, query, null, null, 0, function(data) {
-
-        for (var result = 0; result < data.results.bindings.length; result++) {
-             console.log(data.results.bindings[result].type.value , property);
-            results.push(data.results.bindings[result].type.value)
-        }
-        if (cb) cb(err, results);
-    });
-
-}
 
 Validator.prototype.checkIsExpectedType = function(property, type, cb) {
+    
     //is 'property' of type 'type' of an expectedType?
 
-    var// query = 'PREFIX schema: <http://schema.org/> SELECT ?property  {?property rdfs:domain schema:' + type + '}',
-        ourType = 'http://schema.org/' + type,
-        result = false,
-        err,
-        types = [];
+    var ourType = 'http://schema.org/' + type,
+        result = false;
+        
    
     this.getExpectedTypes(property, function(err, expectedTypes) {
        
@@ -293,6 +272,53 @@ Validator.prototype.checkIsExpectedType = function(property, type, cb) {
         }
         if (cb) cb(err, result);
     });
+}
+
+Validator.prototype.getExpectedTypes = function(property, cb) {
+    var conn = this.conn,
+        database = this.database,
+        query = 'PREFIX owl: <http://www.w3.org/2002/07/owl#>' + 'PREFIX schema: <http://schema.org/>' + 'PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#>' + 'PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>' +
+
+        'SELECT DISTINCT ?type' + '{  { schema:' + property + ' rdfs:range ?type . }' + 'union {' + 'schema:' + property + ' rdfs:range ?union .' + '?union owl:unionOf ?list.' + '?list rdf:rest*/rdf:first ?type .' + '}' +
+
+        'FILTER(!isBlank(?type))' + ' } ',
+        results = [],
+        err;
+
+    this.conn.setReasoning('NONE');
+
+    conn.query(database, query, null, null, 0, function(data) {
+
+        getExpectedTypes(0);
+
+        function getExpectedTypes(result) {
+
+            if (result < data.results.bindings.length) {
+                results.push(data.results.bindings[result].type.value);
+                var type = data.results.bindings[result].type.value.substring(data.results.bindings[result].type.value.lastIndexOf("/") + 1);
+                var getSubClassesQuery = 'PREFIX schema: <http://schema.org/> SELECT ?type  {?type rdfs:subClassOf schema:' + type + '}';
+
+                conn.query(database, getSubClassesQuery, null, null, 0, function(data2) {
+
+                    if (data2.results.bindings.length === 0) {
+                        result++;
+                        getExpectedTypes(result);
+                    }
+                    for (var subresult = 0; subresult < data2.results.bindings.length; subresult++) {
+                        
+                        results.push(data2.results.bindings[subresult].type.value);
+                        if (subresult == data2.results.bindings.length - 1) {
+                            result++;
+                            getExpectedTypes(result);
+                        }
+                    }
+                });
+
+            }
+            else cb(err, results);
+        }
+    });
+
 }
 
 Validator.prototype.inferRelationship = function(supertype, subtype, cb) {
