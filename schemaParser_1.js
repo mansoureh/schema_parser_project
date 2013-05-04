@@ -70,7 +70,7 @@ var numberOfItemtypesInURL ="",
     
   
 
-function parseSchemaOrg(URL) {
+function parseSchemaOrg(URL, cb) {
 
     schemaArray = [],
     arrayItems = {},
@@ -123,13 +123,10 @@ function parseSchemaOrg(URL) {
             var $ = window.$;
             url = URL;
 
-
-
             blankNodeCounter_b = 0,
             blankNodeCounter_e = 0,
             blankNodeCounter_s = 0;
             blankNodeCounter_o = 0;
-
 
             numberOfItemtypesInURL = $($.find("[itemtype]")).length;
             numberOfItempropsInURL = $($.find("[itemprop]")).length;
@@ -230,12 +227,12 @@ function parseSchemaOrg(URL) {
         */
 
             /** 1- Get all nodes with itemtype attributes of url: */
-            parseNode($, 0);
+            parseNode($, 0, cb);
         }
     });
 }
 
-function parseNode($, itemtypeIndex) {
+function parseNode($, itemtypeIndex, _cb) {
     if (itemtypeIndex < numberOfItemtypesInURL) {
         
         dependentNode = false,
@@ -251,7 +248,6 @@ function parseNode($, itemtypeIndex) {
         currentItemtype = $(node).attr("itemtype"),
         currentItemid = $(node).attr("itemid"),
         currentItemprop = "";
-
 
         /** 2-1: Check if it is schema.org type(it should be itemtype="http://schema.org/+ SOMETHING").*/
         if (currentItemtype.match("http://schema.org/")) {
@@ -2091,7 +2087,7 @@ function getOrphanedProperties($, itempropIndex) {
                 isTheLastItemprop = true;
                 if (isTheLastItemtype && isTheLastItemprop) {
                     console.log(schemaArray);
-                    writeInFile();
+                    writeInFile(_cb);
                 }
             }
         }
@@ -2524,9 +2520,10 @@ function getItempropertyValue($, itempropNode, callback) {
 }
 
 
-function writeInFile() {
+function writeInFile(cb) {
 
     if (schemaArray.length !== 0) {
+        var _result = [];
         var fileName = "./rdf" + fileNameCounter + ".txt";
         fs.writeFile(fileName, "");
 
@@ -2534,9 +2531,12 @@ function writeInFile() {
 
             var item1 = schemaArray[j].subject + "  " + schemaArray[j].predicate + "  " + schemaArray[j].object + "\n";
             fs.appendFileSync(fileName, item1 + "\n");
-
+            _result.push({ subject: schemaArray[j].subject,
+                            predicate: schemaArray[j].predicate,
+                            object: schemaArray[j].object });
         }
         console.log("done!");
+        cb(_result);
     }
     
           urlIndex++;
