@@ -1,3 +1,20 @@
+
+/*
+ * Default text - Schema parser
+ *
+ * Author: Mansoureh Targhi
+ *
+ * Email: [Firstname][Lastname]@gmail.com
+ *
+ * Copyright (c) 2013 Resopollution
+ *
+ * Project home:
+ *   https://github.com/mansoureh/schema_parser_project
+ *
+ * Version:  0.1.0
+ *
+ *
+ */
 var fs = require("fs"),
     async = require('async'),
     jsdom = require("jsdom"),
