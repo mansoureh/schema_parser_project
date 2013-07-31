@@ -31,7 +31,8 @@ getURLFromFile();
 
 /**
   getURLFromFile function provides a list of urls we want to extract their schema.org markups.
-
+   - Get urls asynchronously
+   - Parse based on schema.org vocabs
 */
 function getURLFromFile() {
     
